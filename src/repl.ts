@@ -1,4 +1,7 @@
 import * as readline from "node:readline";
+import type { CLICommand } from "./command.js";
+import { commandExit } from "./command_exit.js";
+import { commandHelp } from "./command_help.js";
 
 export function cleanInput(input: string): string[] {
   return input
@@ -8,6 +11,21 @@ export function cleanInput(input: string): string[] {
     .filter((word) => word !== "");
 }
 
+export function getCommands(): Record<string, CLICommand> {
+  return {
+    help: {
+      name: "help",
+      description: "Displays a help message",
+      callback: commandHelp,
+    },
+    exit: {
+      name: "exit",
+      description: "Exit the Pokedex",
+      callback: commandExit,
+    },
+  };
+}
+
 export function startREPL(): void {
   const rl = readline.createInterface({
     input: process.stdin,
@@ -15,6 +33,7 @@ export function startREPL(): void {
     prompt: "Pokedex > ",
   });
 
+  const commands = getCommands();
   rl.prompt();
 
   rl.on("line", (line: string) => {
@@ -25,7 +44,19 @@ export function startREPL(): void {
       return;
     }
 
-    console.log(`\nYour command was: ${words[0]}`);
+    const commandName = words[0];
+    const matchedCommand = commands[commandName];
+
+    if (matchedCommand) {
+      try {
+        matchedCommand.callback(commands);
+      } catch (error) {
+        console.error(`Error executing command: ${error}`);
+      }
+    } else {
+      console.log(`Unknown command: ${commandName}`);
+    }
+
     rl.prompt();
   });
 }
